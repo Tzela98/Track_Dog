@@ -14,6 +14,10 @@ int target_steps = 0;  // Steps received from Python
 unsigned long last_received_time = 0;  // Timestamp of last received data
 const unsigned long TIMEOUT = 1000;  // Timeout in milliseconds (1 second)
 
+// Sweep parameters
+const int SWEEP_MIN_STEPS = 0;  // Minimum steps for sweep (e.g., 0°)
+const int SWEEP_MAX_STEPS = 200;  // Maximum steps for sweep (e.g., 180°)
+
 void setup() {
   // Initialize Serial communication
   Serial.begin(115200);
@@ -41,13 +45,10 @@ void loop() {
 
   // Stop the motor if no new data is received within the timeout period
   if (millis() - last_received_time > TIMEOUT) {
-    target_steps = 0;  // Stop the motor
+    target_steps = stepper.currentPosition();  // Stay at the current position
     Serial.println("No data received. Stopping motor.");
   }
 
-  // Move the motor to the target position
-  stepper.move(target_steps);
-
-  // Run the motor
-  stepper.run();
+  // Move the motor to the target position (absolute positioning)
+  stepper.runToNewPosition(target_steps);
 }
