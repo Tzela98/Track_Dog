@@ -39,45 +39,46 @@ void setup() {
   // Enable the motor (if using ENABLE_PIN)
   pinMode(ENABLE_PIN_HORIZONTAL, OUTPUT);
   digitalWrite(ENABLE_PIN_HORIZONTAL, LOW);  // LOW to enable, HIGH to disable
-  Serial.println('Horizontal Motor Enabled');
+  Serial.println("Horizontal Motor Enabled");
 
   pinMode(ENABLE_PIN_VERTICAL, OUTPUT);
   digitalWrite(ENABLE_PIN_VERTICAL, LOW);
-  Serial.println('Vertical Motor Enabled');
+  Serial.println("Vertical Motor Enabled");
 }
 
 void loop() {
-  // Check for incoming serial data
+  // Handle serial commands
   if (Serial.available() > 0) {
-    String data = Serial.readStringUntil('\n');  // Read the incoming data
-    data.trim();  // Remove any extra whitespace or newline characters
-    last_received_time = millis();  // Update the last received time
+    String data = Serial.readStringUntil('\n');
+    data.trim();
+    last_received_time = millis();
 
-    // Check if the data starts with "x:" or "y:"
-    if (data.startsWith("x:")) {
-      // Extract x steps
-      target_steps_x = data.substring(2).toInt();  // Convert the data to an integer
-      Serial.print("Received x steps: ");
-      Serial.println(target_steps_x);
-    } else if (data.startsWith("y:")) {
-      // Extract y steps
-      target_steps_y = data.substring(2).toInt();  // Convert the data to an integer
-      Serial.print("Received y steps: ");
-      Serial.println(target_steps_y);
-    } else {
-      Serial.println("Invalid data format");
+    if (data.startsWith("xy:")) {
+      int commaIdx = data.indexOf(',');
+      if (commaIdx != -1) {
+        // Get relative movement steps
+        int move_x = data.substring(3, commaIdx).toInt();
+        int move_y = data.substring(commaIdx + 1).toInt();
+        
+        // Move relative to current position
+        stepperHorizontal.move(move_x);
+        stepperVertical.move(move_y);
+        
+        Serial.print("Moving X:");
+        Serial.print(move_x);
+        Serial.print(" Y:");
+        Serial.println(move_y);
+      }
     }
   }
 
-  // Stop the motor if no new data is received within the timeout period
+  // Timeout handling - stop motors
   if (millis() - last_received_time > TIMEOUT) {
-    target_steps_x = stepperHorizontal.currentPosition();  // Stay at the current position
-    target_steps_y = stepperVertical.currentPosition();
-    Serial.println("No data received. Stopping motor.");
+    stepperHorizontal.stop();
+    stepperVertical.stop();
   }
 
-
-  // Move the motor to the target position (absolute positioning)
-  stepperHorizontal.runToNewPosition(target_steps_x);
-  stepperVertical.runToNewPosition(target_steps_y)
+  // Run steppers
+  stepperHorizontal.run();
+  stepperVertical.run();
 }
